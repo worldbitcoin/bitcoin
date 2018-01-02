@@ -31,6 +31,7 @@
 #include "utilmoneystr.h"
 #include "utilstrencodings.h"
 #include "validationinterface.h"
+#include "checkpoints.h"
 
 #if defined(NDEBUG)
 # error "Bitcoin cannot be compiled without assertions."
@@ -2793,6 +2794,39 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
         // message would be undesirable as we transmit it ourselves.
     }
 
+    else if (strCommand == NetMsgType::CHECKPOINT) {
+        std::vector<Checkpoints::CDynamicCheckpointData> vdata;
+        vRecv >> vdata;
+        Checkpoints::CDynamicCheckpointDB checkpointDB;
+        std::vector<Checkpoints::CDynamicCheckpointData> vIndex;
+        for (const auto &checkpoint : vdata) {
+           if (checkpoint.CheckSignature(chainparams.GetCheckpointPubKey())) {
+               if (!checkpointDB.ExistCheckpoint(checkpoint.GetHeight())) {
+                   checkpointDB.WriteCheckpoint(checkpoint.GetHeight(), checkpoint);
+                   chainparams.AddCheckPoint(checkpoint.GetHeight(), checkpoint.GetHash());
+                   pfrom->set_checkpointKnown.insert(checkpoint.GetHeight());
+                   vIndex.push_back(checkpoint);
+               }
+           } else {
+               LogPrint(BCLog::NET, "check point signature check failed \n");
+               break;
+           }
+           LogPrint(BCLog::BENCH, "block height=%d, block hash=%s\n", checkpoint.GetHeight(), checkpoint.GetHash().ToString());
+       }
+       if(vIndex.size() > 0) {
+           CValidationState state;
+           if(!CheckActiveChain(state, chainparams)) {
+               LogPrint(BCLog::NET, "CheckActiveChain error when receive  checkpoint\n");
+           }
+       }
+
+       //broadcast the check point if it is necessary
+       if (vIndex.size() == 1 && vIndex.size() == vdata.size()) {
+           connman->ForEachNode([&](CNode *pnode) {
+               connman->PushMessage(pnode, msgMaker.Make(NetMsgType::CHECKPOINT, vdata));
+           });
+       }
+    }
     else {
         // Ignore unknown commands for extensibility
         LogPrint(BCLog::NET, "Unknown command \"%s\" from peer=%d\n", SanitizeString(strCommand), pfrom->GetId());

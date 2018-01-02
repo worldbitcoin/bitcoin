@@ -1631,6 +1631,11 @@ static unsigned int GetBlockScriptFlags(const CBlockIndex* pindex, const Consens
         flags |= SCRIPT_VERIFY_NULLDUMMY;
     }
 
+    // If the sbtc fork is enabled
+    if (IsWBTCForkEnabled(consensusparams, pindex->pprev->nHeight)) {
+          flags |= SCRIPT_ENABLE_SIGHASH_WBTC_FORK;
+    }
+
     return flags;
 }
 
@@ -2663,6 +2668,110 @@ static CBlockIndex* AddToBlockIndex(const CBlockHeader& block)
     return pindexNew;
 }
 
+bool IsAgainstCheckPoint(const CChainParams &chainparams, const CBlockIndex *pindex) {
+
+    auto lastpioint = Checkpoints::GetLastCheckPointBlockIndex(chainparams.Checkpoints());
+    if (lastpioint == nullptr) {
+        return false;
+    }
+    if (pindex->nHeight >= lastpioint->nHeight) {
+
+        if (pindex->GetAncestor(lastpioint->nHeight)->GetBlockHash() == lastpioint->GetBlockHash()) {
+            return false;
+        }
+    } else {
+        if (lastpioint->GetAncestor(pindex->nHeight)->GetBlockHash() == pindex->GetBlockHash()) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool IsAgainstCheckPoint(const CChainParams &chainparams, const int &nHeight, const uint256 &hash) {
+    const auto tPoint = chainparams.Checkpoints();
+    auto test = tPoint.mapCheckpoints.find(nHeight);
+    if (test != tPoint.mapCheckpoints.end()) {
+        if (test->second != hash)
+            return true;
+    }
+    return false;
+}
+
+bool CheckActiveChain(CValidationState &state, const CChainParams& chainparams) {
+
+    LOCK(cs_main);
+    CBlockIndex *pOldTipIndex = chainActive.Tip();  // 1. current block chain tip
+    LogPrint(BCLog::BENCH, "Current tip block:%s\n", pOldTipIndex->ToString().c_str());
+    MapCheckpoints checkpoints = chainparams.Checkpoints().mapCheckpoints;
+
+    if(checkpoints.rbegin()->first < 1)
+        return true;
+
+    if (chainActive.Height() >= checkpoints.rbegin()->first &&
+        chainActive[checkpoints.rbegin()->first]->GetBlockHash() == checkpoints.rbegin()->second) {
+        return true;
+    }
+
+    auto GetFirstCheckPointInChain = [&]() {
+        auto itReturn = checkpoints.rbegin();
+        for (; itReturn != checkpoints.rend(); itReturn++) {
+            if (chainActive[itReturn->first] != nullptr &&
+                chainActive[itReturn->first]->GetBlockHash() == itReturn->second) {
+                break;
+            }
+        }
+        return itReturn;
+    };
+
+    auto GetFirstCheckPointNotInChain = [&](MapCheckpoints::const_reverse_iterator firstInChain) {
+        assert(firstInChain != checkpoints.rbegin());
+        firstInChain--;
+        assert(chainActive[firstInChain->first] == nullptr ||
+               chainActive[firstInChain->first]->GetBlockHash() != firstInChain->second);
+        return firstInChain;
+    };
+
+    auto firstInChainPoint = GetFirstCheckPointInChain();
+    assert(checkpoints.rbegin() != firstInChainPoint);
+    auto firstNotInChainPoint = GetFirstCheckPointNotInChain(firstInChainPoint);
+
+    if(firstNotInChainPoint->first > chainActive.Height())
+    {
+        return true;
+    }
+
+    CBlockIndex *desPoint = chainActive[firstNotInChainPoint->first];
+
+    if(!InvalidateBlock(state,chainparams,desPoint))
+    {
+         return false;
+    }
+
+    if (state.IsValid()) {
+        ActivateBestChain(state, Params());
+    }
+
+    if (!state.IsValid()) {
+
+        LogPrint(BCLog::BENCH, "reject reason %s\n", state.GetRejectReason());
+        return false;
+
+    }
+
+
+    if (chainActive.Tip() != pOldTipIndex) {
+        // Write changes  to disk.
+        if (!FlushStateToDisk(chainparams, state, FLUSH_STATE_ALWAYS)) {
+            return false;
+        }
+        uiInterface.NotifyBlockTip(IsInitialBlockDownload(), chainActive.Tip());
+    }
+
+     LogPrint(BCLog::BENCH, "CheckActiveChain End====\n");
+
+    return true;
+}
+
 /** Mark a block as having its data received and checked (up to BLOCK_VALID_TRANSACTIONS). */
 static bool ReceivedBlockTransactions(const CBlock &block, CValidationState& state, CBlockIndex *pindexNew, const CDiskBlockPos& pos, const Consensus::Params& consensusParams)
 {
@@ -2952,10 +3061,9 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationSta
         // Don't accept any forks from the main chain prior to last checkpoint.
         // GetLastCheckpoint finds the last checkpoint in MapCheckpoints that's in our
         // MapBlockIndex.
-        CBlockIndex* pcheckpoint = Checkpoints::GetLastCheckpoint(params.Checkpoints());
-        if (pcheckpoint && nHeight < pcheckpoint->nHeight)
-            return state.DoS(100, error("%s: forked chain older than last checkpoint (height %d)", __func__, nHeight), REJECT_CHECKPOINT, "bad-fork-prior-to-checkpoint");
-    }
+        if (IsAgainstCheckPoint(params, pindexPrev) || IsAgainstCheckPoint(params, nHeight, block.GetHash()))
+           return state.DoS(100, error("%s: forked chain older than last checkpoint (height %d)", __func__, nHeight), REJECT_CHECKPOINT, "bad-fork-prior-to-checkpoint");
+       }
 
     // Check timestamp against prev
     if (block.GetBlockTime() <= pindexPrev->GetMedianTimePast())
@@ -4436,6 +4544,14 @@ void DumpMempool(void)
     } catch (const std::exception& e) {
         LogPrintf("Failed to dump mempool: %s. Continuing anyway.\n", e.what());
     }
+}
+
+bool IsWBTCForkEnabled(const Consensus::Params& params, const int &height) {
+    return height >= params.WBTCForkHeight;
+}
+
+bool IsWBTCForkHeight(const Consensus::Params& params, const int &height) {
+    return params.WBTCForkHeight == height;
 }
 
 //! Guess how far we are in the verification process at the given block index

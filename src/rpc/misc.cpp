@@ -17,6 +17,10 @@
 #include "timedata.h"
 #include "util.h"
 #include "utilstrencodings.h"
+#include "checkpoints.h"
+#include "protocol.h"
+#include "netmessagemaker.h"
+#include "reverse_iterator.h"
 #ifdef ENABLE_WALLET
 #include "wallet/rpcwallet.h"
 #include "wallet/wallet.h"
@@ -87,8 +91,8 @@ UniValue getinfo(const JSONRPCRequest& request)
     GetProxy(NET_IPV4, proxy);
 
     UniValue obj(UniValue::VOBJ);
-    obj.push_back(Pair("deprecation-warning", "WARNING: getinfo is deprecated and will be fully removed in 0.16."
-        " Projects should transition to using getblockchaininfo, getnetworkinfo, and getwalletinfo before upgrading to 0.16"));
+//    obj.push_back(Pair("deprecation-warning", "WARNING: getinfo is deprecated and will be fully removed in 0.16."
+//        " Projects should transition to using getblockchaininfo, getnetworkinfo, and getwalletinfo before upgrading to 0.16"));
     obj.push_back(Pair("version", CLIENT_VERSION));
     obj.push_back(Pair("protocolversion", PROTOCOL_VERSION));
 #ifdef ENABLE_WALLET
@@ -648,11 +652,155 @@ UniValue echo(const JSONRPCRequest& request)
     return request.params;
 }
 
+UniValue gencheckpoint(const JSONRPCRequest &request) {
+    if (request.fHelp || request.params.size() != 3) {
+        throw std::runtime_error(
+                "gencheckpoint \"privatekey\" \"hash\" \"height\"\n"
+                        "\n generate checkpoint by Private key and block hash \n"
+                        "\nArguments:\n"
+                        "1. \"private_key\"  (string, required) the private key \n"
+                        "2. \"checkpoint_file\"  (string, required) the checkpoint file path\n"
+                        "3. \"height\" (string ,required) block height\n"
+                        "\nResult:\n"
+                        "\nExamples:\n"
+                + HelpExampleCli("gencheckpoint", "\"privatekey\" \"checkpointfile\" \"hash\" \"height\""));
+    }
+    std::ofstream file;
+    UniValue obj(UniValue::VOBJ);
+    try {
+        boost::filesystem::path filepath = request.params[1].get_str();
+        filepath = boost::filesystem::absolute(filepath);
+
+        file.open(filepath.string().c_str());
+
+        if (!file.is_open())
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Cannot open private key file");
+
+        std::string strSecret = request.params[0].get_str();
+
+        CBitcoinSecret vchSecret;
+        bool fGood = vchSecret.SetString(strSecret);
+
+        if (!fGood) throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid private key encoding");
+
+        CKey key = vchSecret.GetKey();
+        if (!key.IsValid()) throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Private key outside allowed range");
+
+        int nHeight = atoi(request.params[2].get_str().c_str());
+        uint256 blockHash;
+        {
+        LOCK(cs_main);
+
+        if (nHeight < 0 || nHeight > chainActive.Height())
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Block height out of range");
+
+        CBlockIndex* pblockindex = chainActive[nHeight];
+
+        blockHash.SetHex( pblockindex->GetBlockHash().GetHex());
+        }
+
+        Checkpoints::CDynamicCheckpointData cCheckData(nHeight, blockHash);
+        cCheckData.Sign(key);
+
+        file << cCheckData.ToJsonObj().write();
+        file.close();
+
+        obj.push_back(Pair("status", "successed"));
+        obj.push_back(Pair("file", filepath.string().c_str()));
+        obj.push_back(Pair("Obj", cCheckData.ToJsonObj()));
+    }
+    catch (...) {
+        file.close();
+        obj.push_back(Pair("status", "falled"));
+    }
+    return obj;
+}
+
+UniValue setcheckpoint(const JSONRPCRequest& request) {
+    if (request.fHelp || request.params.size() != 1) {
+        throw std::runtime_error(
+                "setcheckpoint \"filepath\"\n"
+                        "\nadd new checkpoint and send it out.\n"
+                        "\nArguments:\n"
+                        "1. \"filepath\"  (string, required) check point file path\n"
+                        "\nResult:\n"
+                        "\nExamples:\n"
+                + HelpExampleCli("setcheckpoint", "\"filepath\"")
+                + HelpExampleRpc("setcheckpoint", "\"filepath\""));
+    }
+
+
+    boost::filesystem::path checkpoint_file = request.params[0].get_str();
+    checkpoint_file = boost::filesystem::absolute(checkpoint_file);
+    if (!boost::filesystem::exists(checkpoint_file)) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, checkpoint_file.string() + " is  not exists. ");
+    }
+
+    std::ifstream in(request.params[0].get_str().c_str(), std::ios::in);
+
+    std::ostringstream temp;
+    temp << in.rdbuf();
+
+    std::string str = temp.str();
+    in.close();
+    UniValue checkObj;
+
+    checkObj.read(str.c_str());
+
+    Checkpoints::CDynamicCheckpointData cCheckData;
+    cCheckData.SetHeight(checkObj["height"].get_int());
+    uint256 blockHash;
+    blockHash.SetHex(checkObj["hash"].get_str().c_str());
+    cCheckData.SetHash(blockHash);
+    cCheckData.SetVchSig(ParseHex(checkObj["sig"].get_str()));
+
+    std::vector<Checkpoints::CDynamicCheckpointData> vdata;
+    vdata.push_back(cCheckData);
+    g_connman.get()->ForEachNode([&vdata](CNode *pnode) {
+        CNetMsgMaker msgMaker(pnode->GetSendVersion());
+        g_connman.get()->PushMessage(pnode, msgMaker.Make(NetMsgType::CHECKPOINT, vdata));
+    });
+
+
+    UniValue retObj(UniValue::VOBJ);
+    retObj.push_back(Pair("info", "the check point has been sended"));
+    retObj.push_back(Pair("obj", checkObj));
+    return retObj;
+}
+
+UniValue listcheckpoint(const JSONRPCRequest& request) {
+    if (request.fHelp || request.params.size() != 0) {
+        throw std::runtime_error(
+                "setcheckpoint \"filepath\"\n"
+                        "\nadd new checkpoint and send it out.\n"
+                        "\nArguments:\n"
+                        "\nResult:\n"
+                        "\nExamples:\n"
+                + HelpExampleCli("listcheckpoint","")
+                + HelpExampleRpc("listcheckpoint",""));
+    }
+
+    const CChainParams & chainParams = Params();
+    UniValue retArray(UniValue::VARR);
+    const MapCheckpoints& checkpoints = chainParams.Checkpoints().mapCheckpoints;
+    for (const MapCheckpoints::value_type& i : reverse_iterate(checkpoints))
+    {
+       UniValue retObj(UniValue::VOBJ);
+       retObj.push_back(Pair("height", i.first));
+       retObj.push_back(Pair("hash", i.second.GetHex()));
+       retArray.push_back(retObj);
+    }
+    return retArray;
+}
+
 static const CRPCCommand commands[] =
 { //  category              name                      actor (function)         okSafeMode
   //  --------------------- ------------------------  -----------------------  ----------
     { "control",            "getinfo",                &getinfo,                true,  {} }, /* uses wallet if enabled */
     { "control",            "getmemoryinfo",          &getmemoryinfo,          true,  {"mode"} },
+    { "control",            "setcheckpoint",          &setcheckpoint,          true,  {"filepath"} },
+    { "control",            "gencheckpoint",          &gencheckpoint,          true,  {"private_key", "checkpoint_file", "height"} },
+    { "control",            "listcheckpoint",         &listcheckpoint,         true,  {} },
     { "util",               "validateaddress",        &validateaddress,        true,  {"address"} }, /* uses wallet if enabled */
     { "util",               "createmultisig",         &createmultisig,         true,  {"nrequired","keys"} },
     { "util",               "verifymessage",          &verifymessage,          true,  {"address","signature","message"} },

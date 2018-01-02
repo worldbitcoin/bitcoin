@@ -277,6 +277,12 @@ bool GetTransaction(const uint256 &hash, CTransactionRef &tx, const Consensus::P
 /** Find the best known block, and make it the tip of the block chain */
 bool ActivateBestChain(CValidationState& state, const CChainParams& chainparams, std::shared_ptr<const CBlock> pblock = std::shared_ptr<const CBlock>());
 CAmount GetBlockSubsidy(int nHeight, const Consensus::Params& consensusParams);
+/**recheck current chain accord with the main chain when received dynamic check point **/
+bool CheckActiveChain(CValidationState &state, const CChainParams& chainparams);
+
+bool IsAgainstCheckPoint(const CChainParams &chainparams, const CBlockIndex *pindex);
+
+bool IsAgainstCheckPoint(const CChainParams &chainparams, const int &nHeight, const uint256 &hash);
 
 /** Guess verification progress (as a fraction between 0.0=genesis and 1.0=current tip). */
 double GuessVerificationProgress(const ChainTxData& data, CBlockIndex* pindex);
@@ -317,6 +323,11 @@ BIP9Stats VersionBitsTipStatistics(const Consensus::Params& params, Consensus::D
 
 /** Get the block height at which the BIP9 deployment switched into the state for the block building on the current tip. */
 int VersionBitsTipStateSinceHeight(const Consensus::Params& params, Consensus::DeploymentPos pos);
+
+/** Check is WBTC  has activated. */
+bool IsWBTCForkEnabled(const Consensus::Params& params, const int &height);
+/** check whether is check point height */
+bool IsWBTCForkHeight(const Consensus::Params& params, const int &height);
 
 
 /** Apply the effects of this transaction on the UTXO set represented by view */

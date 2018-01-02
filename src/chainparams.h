@@ -10,6 +10,7 @@
 #include "consensus/params.h"
 #include "primitives/block.h"
 #include "protocol.h"
+#include "pubkey.h"
 
 #include <memory>
 #include <vector>
@@ -77,6 +78,9 @@ public:
     const CCheckpointData& Checkpoints() const { return checkpointData; }
     const ChainTxData& TxData() const { return chainTxData; }
     void UpdateVersionBitsParameters(Consensus::DeploymentPos d, int64_t nStartTime, int64_t nTimeout);
+    const CPubKey& GetCheckpointPubKey() const { return checkpointPubKey;}
+    bool  AddCheckPoint(int const height, const uint256 hash) const;
+
 protected:
     CChainParams() {}
 
@@ -92,8 +96,9 @@ protected:
     bool fDefaultConsistencyChecks;
     bool fRequireStandard;
     bool fMineBlocksOnDemand;
-    CCheckpointData checkpointData;
+    mutable CCheckpointData checkpointData;
     ChainTxData chainTxData;
+    CPubKey checkpointPubKey;
 };
 
 /**

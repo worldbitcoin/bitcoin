@@ -66,7 +66,7 @@ TESTS =
 BENCHMARKS =
 
 if BUILD_BITCOIND
-  bin_PROGRAMS += wbtc
+  bin_PROGRAMS += wbtcd
 endif
 
 if BUILD_BITCOIN_UTILS

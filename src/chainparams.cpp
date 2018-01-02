@@ -59,6 +59,17 @@ void CChainParams::UpdateVersionBitsParameters(Consensus::DeploymentPos d, int64
     consensus.vDeployments[d].nTimeout = nTimeout;
 }
 
+bool CChainParams::AddCheckPoint(int const height, const uint256 hash) const{
+
+    auto it = std::find_if(checkpointData.mapCheckpoints.begin(), checkpointData.mapCheckpoints.end(),
+                           [&](std::map<int, uint256>::value_type pair) { return pair.first >= height; });
+    if (it != checkpointData.mapCheckpoints.end())
+        return false;
+    checkpointData.mapCheckpoints.insert(std::pair<const int, uint256>(height, hash));
+    return true;
+}
+
+
 /**
  * Main network
  */

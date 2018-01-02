@@ -39,6 +39,8 @@ const char *SENDCMPCT="sendcmpct";
 const char *CMPCTBLOCK="cmpctblock";
 const char *GETBLOCKTXN="getblocktxn";
 const char *BLOCKTXN="blocktxn";
+const char *CHECKPOINT="checkpiont";
+const char *GET_CHECKPOINT="getcheckpiont";
 } // namespace NetMsgType
 
 /** All known message types. Keep this in the same order as the list of

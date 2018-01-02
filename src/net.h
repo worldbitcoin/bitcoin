@@ -620,7 +620,7 @@ public:
     std::deque<CInv> vRecvGetData;
     uint64_t nRecvBytes;
     std::atomic<int> nRecvVersion;
-
+    std::set<int> set_checkpointKnown;
     std::atomic<int64_t> nLastSend;
     std::atomic<int64_t> nLastRecv;
     const int64_t nTimeConnected;
