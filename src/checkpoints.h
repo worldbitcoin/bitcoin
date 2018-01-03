@@ -21,12 +21,6 @@ struct CCheckpointData;
  */
 namespace Checkpoints
 {
-
-//! Returns last CBlockIndex* in mapBlockIndex that is a checkpoint
-CBlockIndex* GetLastCheckpoint(const CCheckpointData& data);
-
-CBlockIndex const * GetLastCheckPointBlockIndex(const CCheckpointData& data);
-
 class CDynamicCheckpointData {
     private:
         int height;
@@ -67,6 +61,14 @@ class CDynamicCheckpointDB {
         CDBWrapper db;
 };
 
+//! Returns last CBlockIndex* in mapBlockIndex that is a checkpoint
+CBlockIndex* GetLastCheckpoint(const CCheckpointData& data);
+
+CBlockIndex const * GetLastCheckPointBlockIndex(const CCheckpointData& data);
+
+bool LoadCheckpoints();
+
+bool GetCheckpointByHeight(const int nHeight, std::vector<CDynamicCheckpointData> &vCheckpoints);
 } //namespace Checkpoints
 
 #endif // BITCOIN_CHECKPOINTS_H

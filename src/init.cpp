@@ -1243,6 +1243,8 @@ bool AppInitMain(boost::thread_group& threadGroup, CScheduler& scheduler)
     LogPrintf("Using config file %s\n", GetConfigFile(gArgs.GetArg("-conf", BITCOIN_CONF_FILENAME)).string());
     LogPrintf("Using at most %i automatic connections (%i file descriptors available)\n", nMaxConnections, nFD);
 
+    Checkpoints::LoadCheckpoints();
+
     InitSignatureCache();
     InitScriptExecutionCache();
 

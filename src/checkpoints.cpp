@@ -44,19 +44,33 @@ namespace Checkpoints {
          return nullptr;
      }
 
+    bool LoadCheckpoints() {
+        Checkpoints::CDynamicCheckpointDB cCheckPointDB;
+        std::map<int, Checkpoints::CDynamicCheckpointData> values;
 
-     bool GetCheckpointByHeight(const int nHeight, std::vector<CDynamicCheckpointData> &vnCheckPoints) {
+        if (cCheckPointDB.LoadCheckPoint(values)) {
+            std::map<int, Checkpoints::CDynamicCheckpointData>::iterator it = values.begin();
+            while (it != values.end()) {
+                Checkpoints::CDynamicCheckpointData data = it->second;
+                Params().AddCheckPoint(data.GetHeight(), data.GetHash());
+                it++;
+            }
+        }
+        return true;
+    }
+
+     bool GetCheckpointByHeight(const int nHeight, std::vector<CDynamicCheckpointData> &vCheckpoints) {
          Checkpoints::CDynamicCheckpointDB db;
          std::map<int, CDynamicCheckpointData> mapCheckPoint;
          if(db.LoadCheckPoint(mapCheckPoint))
          {
              auto iterMap = mapCheckPoint.upper_bound(nHeight);
              while (iterMap != mapCheckPoint.end()) {
-                 vnCheckPoints.push_back(iterMap->second);
+                 vCheckpoints.push_back(iterMap->second);
                  ++iterMap;
              }
          }
-         return !vnCheckPoints.empty();
+         return !vCheckpoints.empty();
      }
 
     CDynamicCheckpointData::~CDynamicCheckpointData() {

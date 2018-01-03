@@ -2827,6 +2827,23 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
            });
        }
     }
+    else if (strCommand == NetMsgType::GET_CHECKPOINT) {
+           int nHeight = 0;
+           vRecv >> nHeight;
+
+           std::vector<Checkpoints::CDynamicCheckpointData> vSendData;
+           std::vector<Checkpoints::CDynamicCheckpointData> vCheckpoints;
+           Checkpoints::GetCheckpointByHeight(nHeight, vCheckpoints);
+           for (const auto &checkpoint : vCheckpoints) {
+               if (pfrom->set_checkpointKnown.count(checkpoint.GetHeight()) == 0 ) {
+                   pfrom->set_checkpointKnown.insert(checkpoint.GetHeight());
+                   vSendData.push_back(checkpoint);
+               }
+           }
+           if (!vSendData.empty()) {
+               connman->PushMessage(pfrom, msgMaker.Make(NetMsgType::CHECKPOINT, vSendData));
+           }
+       }
     else {
         // Ignore unknown commands for extensibility
         LogPrint(BCLog::NET, "Unknown command \"%s\" from peer=%d\n", SanitizeString(strCommand), pfrom->GetId());
