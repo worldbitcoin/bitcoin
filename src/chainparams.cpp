@@ -158,6 +158,7 @@ public:
 
         consensus.WBTCForkHeight = 503888;
         consensus.minerAddress = "1FUdjR4WZQm2Ah8GfupUEpVTn5a8PmS34S";
+        consensus.shrinkDiff = 30000;
 
         checkpointPubKey = CPubKey(ParseHex("034092076ded21159d95bd4e9d486275dfafdc2a06d131e0db42b4e40d19edaa56"));
         checkpointData = (CCheckpointData) {
@@ -258,6 +259,7 @@ public:
         fRequireStandard = false;
         fMineBlocksOnDemand = false;
 
+        consensus.shrinkDiff = 10;
         consensus.WBTCForkHeight = 0;
         consensus.minerAddress = "mji9HufKwvWjUs5Ec2BuWecRLpaRkjnxpo";
         checkpointPubKey = CPubKey(ParseHex("02f014745db7feba840986f63ed27f4c13f95de820499da501136cce8b352e5f38"));
@@ -312,6 +314,7 @@ public:
         // By default assume that the signatures in ancestors of this block are valid.
         consensus.defaultAssumeValid = uint256S("0x00");
 
+        consensus.shrinkDiff = 10;
         consensus.WBTCForkHeight = 200;
         checkpointPubKey = CPubKey(ParseHex("028afed645d279cd31bb64f9b541b6b56721c3ad0e5aeeb98720628633ee790680"));
         consensus.minerAddress = "mzdtTMhssDGwnXeo53eko4ujcF3WytrPmw";

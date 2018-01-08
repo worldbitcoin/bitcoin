@@ -66,6 +66,7 @@ struct Params {
     uint256 nMinimumChainWork;
     uint256 defaultAssumeValid;
     std::string minerAddress;
+    int shrinkDiff;
 
 
 };
