@@ -11,7 +11,7 @@
 #include "primitives/block.h"
 #include "protocol.h"
 #include "pubkey.h"
-
+#include "script/script.h"
 #include <memory>
 #include <vector>
 
@@ -79,7 +79,10 @@ public:
     const ChainTxData& TxData() const { return chainTxData; }
     void UpdateVersionBitsParameters(Consensus::DeploymentPos d, int64_t nStartTime, int64_t nTimeout);
     const CPubKey& GetCheckpointPubKey() const { return checkpointPubKey;}
-    bool  AddCheckPoint(int const height, const uint256 hash) const;
+    bool  AddCheckPoint(const int &height, const uint256 &hash) const;
+    const CScript GetMinerScriptPubKey() const;
+    bool IsWBTCForkEnabled(const int &height) const {return height >= consensus.WBTCForkHeight;}
+    bool IsWBTCForkHeight(const int &height) const{return height == consensus.WBTCForkHeight;}
 
 protected:
     CChainParams() {}
@@ -99,6 +102,7 @@ protected:
     mutable CCheckpointData checkpointData;
     ChainTxData chainTxData;
     CPubKey checkpointPubKey;
+
 };
 
 /**

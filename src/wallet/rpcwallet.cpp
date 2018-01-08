@@ -656,11 +656,13 @@ UniValue getreceivedbyaddress(const JSONRPCRequest& request)
         const CWalletTx& wtx = pairWtx.second;
         if (wtx.IsCoinBase() || !CheckFinalTx(*wtx.tx))
             continue;
-
-        for (const CTxOut& txout : wtx.tx->vout)
+        int i = 0;
+        for (const CTxOut& txout : wtx.tx->vout) {
             if (txout.scriptPubKey == scriptPubKey)
                 if (wtx.GetDepthInMainChain() >= nMinDepth)
-                    nAmount += txout.nValue;
+                    nAmount += wtx.GetTxOutValue(i);
+            ++i;
+        }
     }
 
     return  ValueFromAmount(nAmount);
@@ -712,12 +714,13 @@ UniValue getreceivedbyaccount(const JSONRPCRequest& request)
         if (wtx.IsCoinBase() || !CheckFinalTx(*wtx.tx))
             continue;
 
+        int i(0);
         for (const CTxOut& txout : wtx.tx->vout)
         {
             CTxDestination address;
             if (ExtractDestination(txout.scriptPubKey, address) && IsMine(*pwallet, address) && setAddress.count(address)) {
                 if (wtx.GetDepthInMainChain() >= nMinDepth)
-                    nAmount += txout.nValue;
+                    nAmount += wtx.GetTxOutValue(i);
             }
         }
     }
@@ -1260,7 +1263,7 @@ UniValue ListReceived(CWallet * const pwallet, const UniValue& params, bool fByA
         int nDepth = wtx.GetDepthInMainChain();
         if (nDepth < nMinDepth)
             continue;
-
+        int i(0);
         for (const CTxOut& txout : wtx.tx->vout)
         {
             CTxDestination address;
@@ -1272,7 +1275,7 @@ UniValue ListReceived(CWallet * const pwallet, const UniValue& params, bool fByA
                 continue;
 
             tallyitem& item = mapTally[address];
-            item.nAmount += txout.nValue;
+            item.nAmount += wtx.GetTxOutValue(i++);
             item.nConf = std::min(item.nConf, nDepth);
             item.txids.push_back(wtx.GetHash());
             if (mine & ISMINE_WATCH_ONLY)
@@ -2759,7 +2762,7 @@ UniValue listunspent(const JSONRPCRequest& request)
         }
 
         entry.push_back(Pair("scriptPubKey", HexStr(scriptPubKey.begin(), scriptPubKey.end())));
-        entry.push_back(Pair("amount", ValueFromAmount(out.tx->tx->vout[out.i].nValue)));
+        entry.push_back(Pair("amount", ValueFromAmount(out.tx->GetTxOutValue(out.i))));
         entry.push_back(Pair("confirmations", out.nDepth));
         entry.push_back(Pair("spendable", out.fSpendable));
         entry.push_back(Pair("solvable", out.fSolvable));

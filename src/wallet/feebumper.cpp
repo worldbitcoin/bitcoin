@@ -206,17 +206,18 @@ CFeeBumper::CFeeBumper(const CWallet *pWallet, const uint256 txidIn, const CCoin
     assert(nDelta > 0);
     mtx =  *wtx.tx;
     CTxOut* poutput = &(mtx.vout[nOutput]);
-    if (poutput->nValue < nDelta) {
+    if (poutput->GetValue() < nDelta) {
         vErrors.push_back("Change output is too small to bump the fee");
         currentResult = BumpFeeResult::WALLET_ERROR;
         return;
     }
 
     // If the output would become dust, discard it (converting the dust to fee)
-    poutput->nValue -= nDelta;
-    if (poutput->nValue <= GetDustThreshold(*poutput, ::dustRelayFee)) {
+    CAmount newValue = poutput->GetValue() - nDelta;
+    poutput->SetValue(newValue);
+    if (poutput->GetValue() <= GetDustThreshold(*poutput, ::dustRelayFee)) {
         LogPrint(BCLog::RPC, "Bumping fee and discarding dust output\n");
-        nNewFee += poutput->nValue;
+        nNewFee += poutput->GetValue();
         mtx.vout.erase(mtx.vout.begin() + nOutput);
     }
 

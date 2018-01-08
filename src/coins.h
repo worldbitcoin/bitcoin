@@ -79,6 +79,9 @@ public:
     size_t DynamicMemoryUsage() const {
         return memusage::DynamicUsage(out.scriptPubKey);
     }
+
+    CAmount GetValue() const;
+
 };
 
 class SaltedOutpointHasher

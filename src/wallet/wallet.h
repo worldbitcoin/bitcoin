@@ -260,6 +260,8 @@ public:
 
     const uint256& GetHash() const { return tx->GetHash(); }
     bool IsCoinBase() const { return tx->IsCoinBase(); }
+    CAmount GetTxOutValue(int i) const;
+    int GetTxConfirmHeight() const;
 };
 
 /** 
@@ -488,10 +490,12 @@ public:
 
         outpoint = COutPoint(walletTx->GetHash(), i);
         txout = walletTx->tx->vout[i];
+        value = walletTx->GetTxOutValue(i);
     }
 
     COutPoint outpoint;
     CTxOut txout;
+    CAmount value;
 
     bool operator<(const CInputCoin& rhs) const {
         return outpoint < rhs.outpoint;
@@ -503,6 +507,10 @@ public:
 
     bool operator==(const CInputCoin& rhs) const {
         return outpoint == rhs.outpoint;
+    }
+
+    CAmount GetTxOutValue() const {
+        return value;
     }
 };
 
@@ -532,6 +540,8 @@ public:
     }
 
     std::string ToString() const;
+    CAmount GetValue() const;
+
 };
 
 

@@ -324,10 +324,6 @@ BIP9Stats VersionBitsTipStatistics(const Consensus::Params& params, Consensus::D
 /** Get the block height at which the BIP9 deployment switched into the state for the block building on the current tip. */
 int VersionBitsTipStateSinceHeight(const Consensus::Params& params, Consensus::DeploymentPos pos);
 
-/** Check is WBTC  has activated. */
-bool IsWBTCForkEnabled(const Consensus::Params& params, const int &height);
-/** check whether is check point height */
-bool IsWBTCForkHeight(const Consensus::Params& params, const int &height);
 
 
 /** Apply the effects of this transaction on the UTXO set represented by view */

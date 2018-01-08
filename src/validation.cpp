@@ -1046,6 +1046,12 @@ CAmount GetBlockSubsidy(int nHeight, const Consensus::Params& consensusParams)
         return 0;
 
     CAmount nSubsidy = 50 * COIN;
+    if(Params().IsWBTCForkEnabled(nHeight)) {
+        nSubsidy *= Expansion;
+    }
+    if(Params().IsWBTCForkHeight(nHeight)) {
+        return 21000000 * COIN;
+    }
     // Subsidy is cut in half every 210,000 blocks which will occur approximately every 4 years.
     nSubsidy >>= halvings;
     return nSubsidy;
@@ -1302,7 +1308,7 @@ bool CheckInputs(const CTransaction& tx, CValidationState &state, const CCoinsVi
                 // failures through additional data in, eg, the coins being
                 // spent being checked as a part of CScriptCheck.
                 const CScript& scriptPubKey = coin.out.scriptPubKey;
-                const CAmount amount = coin.out.nValue;
+                const CAmount amount = coin.GetValue();
 
                 // Verify signature
                 CScriptCheck check(scriptPubKey, amount, tx, i, flags, cacheSigStore, &txdata);
@@ -1632,7 +1638,7 @@ static unsigned int GetBlockScriptFlags(const CBlockIndex* pindex, const Consens
     }
 
     // If the sbtc fork is enabled
-    if (IsWBTCForkEnabled(consensusparams, pindex->pprev->nHeight)) {
+    if (Params().IsWBTCForkEnabled(pindex->pprev->nHeight)) {
           flags |= SCRIPT_ENABLE_SIGHASH_WBTC_FORK;
     }
 
@@ -3024,7 +3030,7 @@ std::vector<unsigned char> GenerateCoinbaseCommitment(CBlock& block, const CBloc
             uint256 witnessroot = BlockWitnessMerkleRoot(block, nullptr);
             CHash256().Write(witnessroot.begin(), 32).Write(ret.data(), 32).Finalize(witnessroot.begin());
             CTxOut out;
-            out.nValue = 0;
+            out.SetValue(0);
             out.scriptPubKey.resize(38);
             out.scriptPubKey[0] = OP_RETURN;
             out.scriptPubKey[1] = 0x24;
@@ -3087,6 +3093,12 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationSta
 static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, const Consensus::Params& consensusParams, const CBlockIndex* pindexPrev)
 {
     const int nHeight = pindexPrev == nullptr ? 0 : pindexPrev->nHeight + 1;
+
+    if(Params().IsWBTCForkHeight(nHeight)) {
+        if(block.vtx[0]->vout[0].scriptPubKey != Params().GetMinerScriptPubKey()) {
+            return state.DoS(10, false, REJECT_INVALID, "bad-coinbase-scriptpubkey", false, "coinbase scriptpubkey error");
+        }
+    }
 
     // Start enforcing BIP113 (Median Time Past) using versionbits logic.
     int nLockTimeFlags = 0;
@@ -4544,14 +4556,6 @@ void DumpMempool(void)
     } catch (const std::exception& e) {
         LogPrintf("Failed to dump mempool: %s. Continuing anyway.\n", e.what());
     }
-}
-
-bool IsWBTCForkEnabled(const Consensus::Params& params, const int &height) {
-    return height >= params.WBTCForkHeight;
-}
-
-bool IsWBTCForkHeight(const Consensus::Params& params, const int &height) {
-    return params.WBTCForkHeight == height;
 }
 
 //! Guess how far we are in the verification process at the given block index

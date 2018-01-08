@@ -130,8 +130,10 @@ public:
  */
 class CTxOut
 {
-public:
+private :
     CAmount nValue;
+
+public:
     CScript scriptPubKey;
 
     CTxOut()
@@ -172,6 +174,10 @@ public:
     }
 
     std::string ToString() const;
+
+    CAmount GetValue() const {return nValue;}
+
+    void SetValue(const CAmount &newValue) { nValue = newValue; }
 };
 
 struct CMutableTransaction;

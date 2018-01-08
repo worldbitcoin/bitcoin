@@ -9,8 +9,8 @@
 #include "tinyformat.h"
 #include "util.h"
 #include "utilstrencodings.h"
-
 #include <assert.h>
+#include "base58.h"
 
 #include "chainparamsseeds.h"
 
@@ -21,7 +21,7 @@ static CBlock CreateGenesisBlock(const char* pszTimestamp, const CScript& genesi
     txNew.vin.resize(1);
     txNew.vout.resize(1);
     txNew.vin[0].scriptSig = CScript() << 486604799 << CScriptNum(4) << std::vector<unsigned char>((const unsigned char*)pszTimestamp, (const unsigned char*)pszTimestamp + strlen(pszTimestamp));
-    txNew.vout[0].nValue = genesisReward;
+    txNew.vout[0].SetValue(genesisReward);
     txNew.vout[0].scriptPubKey = genesisOutputScript;
 
     CBlock genesis;
@@ -59,7 +59,7 @@ void CChainParams::UpdateVersionBitsParameters(Consensus::DeploymentPos d, int64
     consensus.vDeployments[d].nTimeout = nTimeout;
 }
 
-bool CChainParams::AddCheckPoint(int const height, const uint256 hash) const{
+bool CChainParams::AddCheckPoint(const int &height, const uint256 &hash) const{
 
     auto it = std::find_if(checkpointData.mapCheckpoints.begin(), checkpointData.mapCheckpoints.end(),
                            [&](std::map<int, uint256>::value_type pair) { return pair.first >= height; });
@@ -69,7 +69,9 @@ bool CChainParams::AddCheckPoint(int const height, const uint256 hash) const{
     return true;
 }
 
-
+const CScript CChainParams::GetMinerScriptPubKey() const {
+    return GetScriptForDestination(CBitcoinAddress(consensus.minerAddress).Get());
+}
 /**
  * Main network
  */
@@ -135,12 +137,12 @@ public:
         assert(genesis.hashMerkleRoot == uint256S("0x4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b"));
 
         // Note that of those with the service bits flag, most only support a subset of possible options
-        vSeeds.emplace_back("seed.bitcoin.sipa.be", true); // Pieter Wuille, only supports x1, x5, x9, and xd
-        vSeeds.emplace_back("dnsseed.bluematt.me", true); // Matt Corallo, only supports x9
-        vSeeds.emplace_back("dnsseed.bitcoin.dashjr.org", false); // Luke Dashjr
-        vSeeds.emplace_back("seed.bitcoinstats.com", true); // Christian Decker, supports x1 - xf
-        vSeeds.emplace_back("seed.bitcoin.jonasschnelli.ch", true); // Jonas Schnelli, only supports x1, x5, x9, and xd
-        vSeeds.emplace_back("seed.btc.petertodd.org", true); // Peter Todd, only supports x1, x5, x9, and xd
+//        vSeeds.emplace_back("seed.bitcoin.sipa.be", true); // Pieter Wuille, only supports x1, x5, x9, and xd
+//        vSeeds.emplace_back("dnsseed.bluematt.me", true); // Matt Corallo, only supports x9
+//        vSeeds.emplace_back("dnsseed.bitcoin.dashjr.org", false); // Luke Dashjr
+//        vSeeds.emplace_back("seed.bitcoinstats.com", true); // Christian Decker, supports x1 - xf
+//        vSeeds.emplace_back("seed.bitcoin.jonasschnelli.ch", true); // Jonas Schnelli, only supports x1, x5, x9, and xd
+//        vSeeds.emplace_back("seed.btc.petertodd.org", true); // Peter Todd, only supports x1, x5, x9, and xd
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,0);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,5);
@@ -154,6 +156,10 @@ public:
         fRequireStandard = true;
         fMineBlocksOnDemand = false;
 
+        consensus.WBTCForkHeight = 503888;
+        consensus.minerAddress = "1FUdjR4WZQm2Ah8GfupUEpVTn5a8PmS34S";
+
+        checkpointPubKey = CPubKey(ParseHex("034092076ded21159d95bd4e9d486275dfafdc2a06d131e0db42b4e40d19edaa56"));
         checkpointData = (CCheckpointData) {
             {
                 { 11111, uint256S("0x0000000069e244f73d78e8fd29ba2fd2ed618bd6fa2ee92559f542fdb26e7c1d")},
@@ -252,7 +258,9 @@ public:
         fRequireStandard = false;
         fMineBlocksOnDemand = false;
 
-
+        consensus.WBTCForkHeight = 0;
+        consensus.minerAddress = "mji9HufKwvWjUs5Ec2BuWecRLpaRkjnxpo";
+        checkpointPubKey = CPubKey(ParseHex("02f014745db7feba840986f63ed27f4c13f95de820499da501136cce8b352e5f38"));
         checkpointData = (CCheckpointData) {
             {
                 {546, uint256S("000000002a936ca763904c3c35fce2f3556c559c0214345d31b1bcebf76acb70")},
@@ -303,6 +311,10 @@ public:
 
         // By default assume that the signatures in ancestors of this block are valid.
         consensus.defaultAssumeValid = uint256S("0x00");
+
+        consensus.WBTCForkHeight = 200;
+        checkpointPubKey = CPubKey(ParseHex("028afed645d279cd31bb64f9b541b6b56721c3ad0e5aeeb98720628633ee790680"));
+        consensus.minerAddress = "mzdtTMhssDGwnXeo53eko4ujcF3WytrPmw";
 
         pchMessageStart[0] = 0xfa;
         pchMessageStart[1] = 0xbf;

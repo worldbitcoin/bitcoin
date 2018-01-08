@@ -3,7 +3,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include "coins.h"
-
+#include "chainparams.h"
 #include "consensus/consensus.h"
 #include "memusage.h"
 #include "random.h"
@@ -228,7 +228,7 @@ CAmount CCoinsViewCache::GetValueIn(const CTransaction& tx) const
 
     CAmount nResult = 0;
     for (unsigned int i = 0; i < tx.vin.size(); i++)
-        nResult += AccessCoin(tx.vin[i].prevout).out.nValue;
+        nResult += AccessCoin(tx.vin[i].prevout).GetValue();
 
     return nResult;
 }
@@ -257,4 +257,13 @@ const Coin& AccessByTxid(const CCoinsViewCache& view, const uint256& txid)
         ++iter.n;
     }
     return coinEmpty;
+}
+
+
+CAmount Coin::GetValue() const
+{
+    if(!Params().IsWBTCForkHeight(nHeight)) {
+        return out.GetValue() * Expansion;
+    }
+    return out.GetValue();
 }

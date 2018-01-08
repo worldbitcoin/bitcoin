@@ -15,6 +15,7 @@
 #include "util.h"
 #include "utilmoneystr.h"
 #include "utilstrencodings.h"
+#include "chain.h"
 
 UniValue ValueFromAmount(const CAmount& amount)
 {
@@ -163,8 +164,9 @@ void ScriptPubKeyToUniv(const CScript& scriptPubKey,
     out.pushKV("addresses", a);
 }
 
-void TxToUniv(const CTransaction& tx, const uint256& hashBlock, UniValue& entry, bool include_hex, int serialize_flags)
+void TxToUniv(const CTransaction& tx, const uint256& hashBlock, UniValue& entry, bool include_hex, int serialize_flags, CBlockIndex *pIndex)
 {
+
     entry.pushKV("txid", tx.GetHash().GetHex());
     entry.pushKV("hash", tx.GetWitnessHash().GetHex());
     entry.pushKV("version", tx.nVersion);
@@ -203,8 +205,13 @@ void TxToUniv(const CTransaction& tx, const uint256& hashBlock, UniValue& entry,
         const CTxOut& txout = tx.vout[i];
 
         UniValue out(UniValue::VOBJ);
-
-        out.pushKV("value", ValueFromAmount(txout.nValue));
+        CAmount value;
+        if (pIndex != NULL && !Params().IsWBTCForkEnabled(pIndex->nHeight)) {
+            value = txout.GetValue() * Expansion;
+        } else {
+            value = txout.GetValue();
+        }
+        out.pushKV("value", ValueFromAmount(value));
         out.pushKV("n", (int64_t)i);
 
         UniValue o(UniValue::VOBJ);
