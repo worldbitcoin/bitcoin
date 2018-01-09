@@ -221,14 +221,14 @@ unsigned int CCoinsViewCache::GetCacheSize() const {
     return cacheCoins.size();
 }
 
-CAmount CCoinsViewCache::GetValueIn(const CTransaction& tx) const
+CAmount CCoinsViewCache::GetValueIn(const CTransaction& tx, const int & currentHeight) const
 {
     if (tx.IsCoinBase())
         return 0;
 
     CAmount nResult = 0;
     for (unsigned int i = 0; i < tx.vin.size(); i++)
-        nResult += AccessCoin(tx.vin[i].prevout).GetValue();
+        nResult += AccessCoin(tx.vin[i].prevout).GetValue(currentHeight);
 
     return nResult;
 }
@@ -260,9 +260,9 @@ const Coin& AccessByTxid(const CCoinsViewCache& view, const uint256& txid)
 }
 
 
-CAmount Coin::GetValue() const
+CAmount Coin::GetValue(const int &currentHeight) const
 {
-    if(!Params().IsWBTCForkHeight(nHeight)) {
+    if(!Params().IsWBTCForkEnabled(nHeight) && Params().IsWBTCForkEnabled(currentHeight)) {
         return out.GetValue() * Expansion;
     }
     return out.GetValue();

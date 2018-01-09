@@ -576,9 +576,10 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
         }
 
         // Bring the best block into scope
-        view.GetBestBlock();
-
-        nValueIn = view.GetValueIn(tx);
+        uint256 bestBlockHash = view.GetBestBlock();
+        BlockMap::iterator it = mapBlockIndex.find(bestBlockHash);
+        CBlockIndex * pIndex = it->second;
+        nValueIn = view.GetValueIn(tx, pIndex->nHeight+1);
 
         // we have all inputs cached now, so switch back to dummy, so we don't need to keep lock on mempool
         view.SetBackend(dummy);
@@ -1308,7 +1309,7 @@ bool CheckInputs(const CTransaction& tx, CValidationState &state, const CCoinsVi
                 // failures through additional data in, eg, the coins being
                 // spent being checked as a part of CScriptCheck.
                 const CScript& scriptPubKey = coin.out.scriptPubKey;
-                const CAmount amount = coin.GetValue();
+                const CAmount amount = coin.GetValue(GetSpendHeight(inputs));
 
                 // Verify signature
                 CScriptCheck check(scriptPubKey, amount, tx, i, flags, cacheSigStore, &txdata);
@@ -1814,7 +1815,7 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
         txdata.emplace_back(tx);
         if (!tx.IsCoinBase())
         {
-            nFees += view.GetValueIn(tx)-tx.GetValueOut();
+            nFees += view.GetValueIn(tx, pindex->nHeight)-tx.GetValueOut();
 
             std::vector<CScriptCheck> vChecks;
             bool fCacheResults = fJustCheck; /* Don't cache results if we're actually connecting blocks (still consult the cache, though) */
@@ -2709,7 +2710,7 @@ bool IsAgainstCheckPoint(const CChainParams &chainparams, const int &nHeight, co
 bool CheckActiveChain(CValidationState &state, const CChainParams& chainparams) {
 
     LOCK(cs_main);
-    CBlockIndex *pOldTipIndex = chainActive.Tip();  // 1. current block chain tip
+    CBlockIndex *pOldTipIndex = chainActive.Tip();
     LogPrint(BCLog::BENCH, "Current tip block:%s\n", pOldTipIndex->ToString().c_str());
     MapCheckpoints checkpoints = chainparams.Checkpoints().mapCheckpoints;
 

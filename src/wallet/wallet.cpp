@@ -1772,8 +1772,7 @@ CAmount CWalletTx::GetCredit(const isminefilter& filter) const
             credit += nCreditCached;
         else
         {
-
-            if(!Params().IsWBTCForkEnabled(GetTxConfirmHeight())){
+            if(!Params().IsWBTCForkEnabled(GetTxConfirmHeight()) && Params().IsWBTCForkEnabled(chainActive.Height())){
                 nCreditCached =  pwallet->GetCredit(*this, ISMINE_SPENDABLE) * Expansion;
             }else {
                 nCreditCached = pwallet->GetCredit(*this, ISMINE_SPENDABLE);
@@ -1788,10 +1787,10 @@ CAmount CWalletTx::GetCredit(const isminefilter& filter) const
             credit += nWatchCreditCached;
         else
         {
-            if(!Params().IsWBTCForkEnabled(GetTxConfirmHeight())){
+            if(!Params().IsWBTCForkEnabled(GetTxConfirmHeight()) && Params().IsWBTCForkEnabled(chainActive.Height())){
                 nWatchCreditCached = pwallet->GetCredit(*this, ISMINE_WATCH_ONLY) * Expansion;
             } else {
-                nWatchCreditCached = pwallet->GetCredit(*this, ISMINE_SPENDABLE);
+                nWatchCreditCached = pwallet->GetCredit(*this, ISMINE_WATCH_ONLY);
             }
 
             fWatchCreditCached = true;
@@ -1807,7 +1806,7 @@ CAmount CWalletTx::GetImmatureCredit(bool fUseCache) const
     {
         if (fUseCache && fImmatureCreditCached)
             return nImmatureCreditCached;
-        if(!Params().IsWBTCForkEnabled(GetTxConfirmHeight())){
+        if(!Params().IsWBTCForkEnabled(GetTxConfirmHeight()) && Params().IsWBTCForkEnabled(chainActive.Height())){
             nImmatureCreditCached = pwallet->GetCredit(*this, ISMINE_SPENDABLE) * Expansion;
         } else {
             nImmatureCreditCached = pwallet->GetCredit(*this, ISMINE_SPENDABLE);
@@ -1838,7 +1837,7 @@ CAmount CWalletTx::GetAvailableCredit(bool fUseCache) const
         if (!pwallet->IsSpent(hashTx, i))
         {
             const CTxOut &txout = tx->vout[i];
-            if(!Params().IsWBTCForkEnabled(GetTxConfirmHeight())){
+            if(!Params().IsWBTCForkEnabled(GetTxConfirmHeight()) && Params().IsWBTCForkEnabled(chainActive.Height())){
                 nCredit +=  pwallet->GetCredit(txout, ISMINE_SPENDABLE) * Expansion;
             }else {
                 nCredit += pwallet->GetCredit(txout, ISMINE_SPENDABLE);
@@ -1859,7 +1858,7 @@ CAmount CWalletTx::GetImmatureWatchOnlyCredit(const bool& fUseCache) const
     {
         if (fUseCache && fImmatureWatchCreditCached)
             return nImmatureWatchCreditCached;
-        if(!Params().IsWBTCForkEnabled(GetTxConfirmHeight())){
+        if(!Params().IsWBTCForkEnabled(GetTxConfirmHeight()) && Params().IsWBTCForkEnabled(chainActive.Height())){
             nImmatureWatchCreditCached = pwallet->GetCredit(*this, ISMINE_WATCH_ONLY) * Expansion;
         }else {
             nImmatureWatchCreditCached = pwallet->GetCredit(*this, ISMINE_WATCH_ONLY);
@@ -1889,7 +1888,7 @@ CAmount CWalletTx::GetAvailableWatchOnlyCredit(const bool& fUseCache) const
         if (!pwallet->IsSpent(GetHash(), i))
         {
             const CTxOut &txout = tx->vout[i];
-            if(!Params().IsWBTCForkEnabled(GetTxConfirmHeight())){
+            if(!Params().IsWBTCForkEnabled(GetTxConfirmHeight()) && Params().IsWBTCForkEnabled(chainActive.Height())){
                     nCredit += pwallet->GetCredit(txout, ISMINE_WATCH_ONLY) * Expansion;
             }else{
                 nCredit += pwallet->GetCredit(txout, ISMINE_WATCH_ONLY);
@@ -1909,7 +1908,7 @@ CAmount CWalletTx::GetChange() const
 {
     if (fChangeCached)
         return nChangeCached;
-    if(!Params().IsWBTCForkEnabled(GetTxConfirmHeight())){
+    if(!Params().IsWBTCForkEnabled(GetTxConfirmHeight()) && Params().IsWBTCForkEnabled(chainActive.Height())){
         nChangeCached = pwallet->GetChange(*this) * Expansion;
     }else {
         nChangeCached = pwallet->GetChange(*this);
@@ -2375,7 +2374,7 @@ static void ApproximateBestSubset(const std::vector<CInputCoin>& vValue, const C
                 //the selection random.
                 if (nPass == 0 ? insecure_rand.randbool() : !vfIncluded[i])
                 {
-                    nTotal += vValue[i].txout.GetValue();
+                    nTotal += vValue[i].GetTxOutValue();
                     vfIncluded[i] = true;
                     if (nTotal >= nTargetValue)
                     {
@@ -2967,13 +2966,8 @@ bool CWallet::CreateTransaction(const std::vector<CRecipient>& vecSend, CWalletT
             {
                 const CScript& scriptPubKey = coin.txout.scriptPubKey;
                 SignatureData sigdata;
-                int nHashTypeIn = 0;
-                if(Params().IsWBTCForkEnabled(chainActive.Height())) {
-                    nHashTypeIn = SIGHASH_ALL | SIGHASH_WBTC_FORK;
-                }else {
-                    nHashTypeIn = SIGHASH_ALL;
-                }
-                if (!ProduceSignature(TransactionSignatureCreator(this, &txNewConst, nIn, coin.GetTxOutValue(), nHashTypeIn), scriptPubKey, sigdata))
+
+                if (!ProduceSignature(TransactionSignatureCreator(this, &txNewConst, nIn, coin.GetTxOutValue(), SIGHASH_ALL | SIGHASH_WBTC_FORK), scriptPubKey, sigdata))
                 {
                     strFailReason = _("Signing transaction failed");
                     return false;
@@ -4389,7 +4383,7 @@ int CMerkleTx::GetBlocksToMaturity() const
 }
 
 CAmount CMerkleTx::GetTxOutValue(int i) const {
-    if(!Params().IsWBTCForkHeight(GetTxConfirmHeight())) {
+    if(!Params().IsWBTCForkEnabled(GetTxConfirmHeight()) && Params().IsWBTCForkEnabled(chainActive.Height())) {
        return tx->vout[i].GetValue() * Expansion;
     }
     return tx->vout[i].GetValue();

@@ -654,7 +654,7 @@ static void MutateTxSign(CMutableTransaction& tx, const std::string& flagStr)
             continue;
         }
         const CScript& prevPubKey = coin.out.scriptPubKey;
-        const CAmount& amount = coin.GetValue();
+        const CAmount& amount = coin.GetValue(Params().GetConsensus().WBTCForkHeight);
 
         SignatureData sigdata;
         // Only sign SIGHASH_SINGLE if there's a corresponding output:

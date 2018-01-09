@@ -164,7 +164,7 @@ void ScriptPubKeyToUniv(const CScript& scriptPubKey,
     out.pushKV("addresses", a);
 }
 
-void TxToUniv(const CTransaction& tx, const uint256& hashBlock, UniValue& entry, bool include_hex, int serialize_flags, CBlockIndex *pIndex)
+void TxToUniv(const CTransaction& tx, const uint256& hashBlock, UniValue& entry, bool include_hex, int serialize_flags, CBlockIndex *pIndex, int currentHeight)
 {
 
     entry.pushKV("txid", tx.GetHash().GetHex());
@@ -206,7 +206,7 @@ void TxToUniv(const CTransaction& tx, const uint256& hashBlock, UniValue& entry,
 
         UniValue out(UniValue::VOBJ);
         CAmount value;
-        if (pIndex != NULL && !Params().IsWBTCForkEnabled(pIndex->nHeight)) {
+        if (pIndex != NULL && !Params().IsWBTCForkEnabled(pIndex->nHeight) && Params().IsWBTCForkEnabled(currentHeight)) {
             value = txout.GetValue() * Expansion;
         } else {
             value = txout.GetValue();

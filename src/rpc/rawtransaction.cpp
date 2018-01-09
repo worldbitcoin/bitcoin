@@ -40,7 +40,7 @@ void TxToJSON(const CTransaction& tx, const uint256 hashBlock, UniValue& entry)
     if (!hashBlock.IsNull()) {
         BlockMap::iterator mi = mapBlockIndex.find(hashBlock);
         if (mi != mapBlockIndex.end() && (*mi).second) {
-             if(chainActive.Contains(pIndex))
+             if(chainActive.Contains((*mi).second))
                  pIndex = (*mi).second;
         }
     }
@@ -50,7 +50,7 @@ void TxToJSON(const CTransaction& tx, const uint256 hashBlock, UniValue& entry)
     // Blockchain contextual information (confirmations and blocktime) is not
     // available to code in bitcoin-common, so we query them here and push the
     // data into the returned UniValue.
-    TxToUniv(tx, uint256(), entry, true, RPCSerializationFlags(), pIndex);
+    TxToUniv(tx, uint256(), entry, true, RPCSerializationFlags(), pIndex, chainActive.Height());
 
 
     if(!hashBlock.IsNull()) {
@@ -616,6 +616,9 @@ UniValue combinerawtransaction(const JSONRPCRequest& request)
         view.SetBackend(viewDummy); // switch back to avoid locking mempool for too long
     }
 
+    BlockMap::iterator it = mapBlockIndex.find(pcoinsTip->GetBestBlock());
+    CBlockIndex *pindex = it->second;
+
     // Use CTransaction for the constant parts of the
     // transaction to avoid rehashing.
     const CTransaction txConst(mergedTx);
@@ -627,7 +630,7 @@ UniValue combinerawtransaction(const JSONRPCRequest& request)
             throw JSONRPCError(RPC_VERIFY_ERROR, "Input not found or already spent");
         }
         const CScript& prevPubKey = coin.out.scriptPubKey;
-        const CAmount& amount = coin.GetValue();
+        const CAmount& amount = coin.GetValue(pindex->nHeight);
 
         SignatureData sigdata;
 
@@ -870,7 +873,7 @@ UniValue signrawtransaction(const JSONRPCRequest& request)
             continue;
         }
         const CScript& prevPubKey = coin.out.scriptPubKey;
-        const CAmount& amount = coin.GetValue();
+        const CAmount& amount = coin.GetValue(chainActive.Height());
 
         SignatureData sigdata;
         // Only sign SIGHASH_SINGLE if there's a corresponding output:

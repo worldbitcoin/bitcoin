@@ -80,7 +80,7 @@ public:
         return memusage::DynamicUsage(out.scriptPubKey);
     }
 
-    CAmount GetValue() const;
+    CAmount GetValue(const int &currentHeight) const;
 
 };
 
@@ -286,7 +286,7 @@ public:
      * @param[in] tx	transaction for which we are checking input total
      * @return	Sum of value of all inputs (scriptSigs)
      */
-    CAmount GetValueIn(const CTransaction& tx) const;
+    CAmount GetValueIn(const CTransaction& tx, const int &currentHeight) const;
 
     //! Check whether all prevouts of the transaction are present in the UTXO set represented by this view
     bool HaveInputs(const CTransaction& tx) const;

@@ -655,15 +655,15 @@ UniValue echo(const JSONRPCRequest& request)
 UniValue gencheckpoint(const JSONRPCRequest &request) {
     if (request.fHelp || request.params.size() != 3) {
         throw std::runtime_error(
-                "gencheckpoint \"privatekey\" \"hash\" \"height\"\n"
+                "gencheckpoint \"privatekey\" \"checkpointfile\" \"height\"\n"
                         "\n generate checkpoint by Private key and block hash \n"
                         "\nArguments:\n"
                         "1. \"private_key\"  (string, required) the private key \n"
                         "2. \"checkpoint_file\"  (string, required) the checkpoint file path\n"
-                        "3. \"height\" (string ,required) block height\n"
+                        "3. \"height\" (int ,required) block height\n"
                         "\nResult:\n"
                         "\nExamples:\n"
-                + HelpExampleCli("gencheckpoint", "\"privatekey\" \"checkpointfile\" \"hash\" \"height\""));
+                + HelpExampleCli("gencheckpoint", "\"privatekey\" \"checkpointfile\" \"height\""));
     }
     std::ofstream file;
     UniValue obj(UniValue::VOBJ);
@@ -686,7 +686,7 @@ UniValue gencheckpoint(const JSONRPCRequest &request) {
         CKey key = vchSecret.GetKey();
         if (!key.IsValid()) throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Private key outside allowed range");
 
-        int nHeight = atoi(request.params[2].get_str().c_str());
+        int nHeight = request.params[2].get_int();
         uint256 blockHash;
         {
         LOCK(cs_main);
@@ -711,7 +711,7 @@ UniValue gencheckpoint(const JSONRPCRequest &request) {
     }
     catch (...) {
         file.close();
-        obj.push_back(Pair("status", "falled"));
+        obj.push_back(Pair("status", "failed"));
     }
     return obj;
 }

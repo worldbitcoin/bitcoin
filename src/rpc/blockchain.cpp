@@ -799,9 +799,9 @@ static void ApplyStats(CCoinsStats &stats, CHashWriter& ss, const uint256& hash,
     for (const auto output : outputs) {
         ss << VARINT(output.first + 1);
         ss << output.second.out.scriptPubKey;
-        ss << VARINT(output.second.GetValue());
+        ss << VARINT(output.second.GetValue(stats.nHeight));
         stats.nTransactionOutputs++;
-        stats.nTotalAmount += output.second.GetValue();
+        stats.nTotalAmount += output.second.GetValue(stats.nHeight);
         stats.nBogoSize += 32 /* txid */ + 4 /* vout index */ + 4 /* height + coinbase */ + 8 /* amount */ +
                            2 /* scriptPubKey len */ + output.second.out.scriptPubKey.size() /* scriptPubKey */;
     }
@@ -1008,7 +1008,7 @@ UniValue gettxout(const JSONRPCRequest& request)
     } else {
         ret.push_back(Pair("confirmations", (int64_t)(pindex->nHeight - coin.nHeight + 1)));
     }
-    ret.push_back(Pair("value", ValueFromAmount(coin.GetValue())));
+    ret.push_back(Pair("value", ValueFromAmount(coin.GetValue(pindex->nHeight))));
     UniValue o(UniValue::VOBJ);
     ScriptPubKeyToUniv(coin.out.scriptPubKey, o, true);
     ret.push_back(Pair("scriptPubKey", o));

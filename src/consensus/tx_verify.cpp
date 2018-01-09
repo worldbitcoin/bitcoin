@@ -229,8 +229,8 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, c
             }
 
             // Check for negative or overflow input values
-            nValueIn += coin.GetValue();
-            if (!MoneyRange(coin.GetValue()) || !MoneyRange(nValueIn))
+            nValueIn += coin.GetValue(nSpendHeight);
+            if (!MoneyRange(coin.GetValue(nSpendHeight)) || !MoneyRange(nValueIn))
                 return state.DoS(100, false, REJECT_INVALID, "bad-txns-inputvalues-outofrange");
 
         }

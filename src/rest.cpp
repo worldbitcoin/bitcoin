@@ -58,11 +58,11 @@ struct CCoin {
         READWRITE(nHeight);
         READWRITE(out);
     }
-    CAmount GetValue() const;
+    CAmount GetValue(const int &currentHeight) const;
 };
 
-CAmount CCoin::GetValue() const {
-    if(!Params().IsWBTCForkHeight(nHeight)) {
+CAmount CCoin::GetValue(const int &currentHeight) const {
+    if(!Params().IsWBTCForkEnabled(nHeight) && Params().IsWBTCForkEnabled(currentHeight)) {
          return out.GetValue() * Expansion;
     }
     return out.GetValue();
@@ -569,7 +569,7 @@ static bool rest_getutxos(HTTPRequest* req, const std::string& strURIPart)
         for (const CCoin& coin : outs) {
             UniValue utxo(UniValue::VOBJ);
             utxo.push_back(Pair("height", (int32_t)coin.nHeight));
-            utxo.push_back(Pair("value", ValueFromAmount(coin.GetValue())));
+            utxo.push_back(Pair("value", ValueFromAmount(coin.GetValue(chainActive.Height()))));
 
             // include the script in a json output
             UniValue o(UniValue::VOBJ);
