@@ -477,7 +477,6 @@ public:
 
     std::set<uint256> GetConflicts() const;
 
-    void ClearCache();
 };
 
 
