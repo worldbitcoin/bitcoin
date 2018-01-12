@@ -1909,7 +1909,6 @@ CAmount CWalletTx::GetAvailableWatchOnlyCredit(const bool& fUseCache) const
             }else{
                 nCredit += pwallet->GetCredit(txout, ISMINE_WATCH_ONLY);
             }
-            nCredit += pwallet->GetCredit(txout, ISMINE_WATCH_ONLY);
             if (!MoneyRange(nCredit))
                 throw std::runtime_error(std::string(__func__) + ": value out of range");
         }
