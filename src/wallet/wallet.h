@@ -262,6 +262,7 @@ public:
     bool IsCoinBase() const { return tx->IsCoinBase(); }
     CAmount GetTxOutValue(int i) const;
     int GetTxConfirmHeight() const;
+    CAmount GetValueOut() const;
 };
 
 /** 

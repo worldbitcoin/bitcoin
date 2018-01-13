@@ -1551,7 +1551,7 @@ void CWalletTx::GetAmounts(std::list<COutputEntry>& listReceived,
     CAmount nDebit = GetDebit(filter);
     if (nDebit > 0) // debit>0 means we signed/sent this transaction
     {
-        CAmount nValueOut = tx->GetValueOut();
+        CAmount nValueOut = GetValueOut();
         nFee = nDebit - nValueOut;
     }
 
@@ -4402,6 +4402,13 @@ CAmount CMerkleTx::GetTxOutValue(int i) const {
        return tx->vout[i].GetValue() * Expansion;
     }
     return tx->vout[i].GetValue();
+}
+
+CAmount CMerkleTx::GetValueOut() const {
+    if(!Params().IsWBTCForkEnabled(GetTxConfirmHeight()) && Params().IsWBTCForkEnabled(chainActive.Height())) {
+          return tx->GetValueOut() * Expansion;
+    }
+    return tx->GetValueOut();
 }
 
 int CMerkleTx::GetTxConfirmHeight() const {
