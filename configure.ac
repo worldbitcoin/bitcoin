@@ -15,7 +15,7 @@ AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([build-aux/m4])
 
 BITCOIN_DAEMON_NAME=wbtcd
-BITCOIN_GUI_NAME=bitcoin-qt
+BITCOIN_GUI_NAME=wbtc-qt
 BITCOIN_CLI_NAME=wbtc-cli
 BITCOIN_TX_NAME=wbtc-tx
 

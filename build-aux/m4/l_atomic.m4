@@ -5,7 +5,7 @@ dnl and this notice are preserved. This file is offered as-is, without any
 dnl warranty.
 
 # Some versions of gcc/libstdc++ require linking with -latomic if
-# using the C++ atomic library.
+# using the C++ atomic library
 #
 # Sourced from http://bugs.debian.org/797228
 

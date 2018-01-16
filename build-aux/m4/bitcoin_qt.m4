@@ -28,9 +28,9 @@ AC_DEFUN([BITCOIN_QT_CHECK],[
 
 dnl BITCOIN_QT_PATH_PROGS([FOO], [foo foo2], [/path/to/search/first], [continue if missing])
 dnl Helper for finding the path of programs needed for Qt.
-dnl Inputs: $1: Variable to be set
-dnl Inputs: $2: List of programs to search for
-dnl Inputs: $3: Look for $2 here before $PATH
+dnl Inputs: $1: Variable to be set.
+dnl Inputs: $2: List of programs to search for.
+dnl Inputs: $3: Look for $2 here before $PATH.
 dnl Inputs: $4: If "yes", don't fail if $2 is not found.
 dnl Output: $1 is set to the path of $2 if found. $2 are searched in order.
 AC_DEFUN([BITCOIN_QT_PATH_PROGS],[
