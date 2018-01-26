@@ -21,7 +21,7 @@ Development Process
 
 The `master` branch is regularly built and tested, but is not guaranteed to be
 completely stable. [Tags](https://github.com/worldbitcoin/worldbitcoin/tags) are created
-regularly to indicate new official, stable release versions of Super Bitcoin .
+regularly to indicate new official, stable release versions of World Bitcoin .
 
 The contribution workflow is described in [CONTRIBUTING.md](CONTRIBUTING.md).
 
