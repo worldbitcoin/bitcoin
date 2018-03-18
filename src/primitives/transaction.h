@@ -130,10 +130,9 @@ public:
  */
 class CTxOut
 {
-private :
-    CAmount nValue;
 
 public:
+    CAmount nValue;
     CScript scriptPubKey;
 
     CTxOut()
